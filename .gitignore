@@ -1,0 +1,10 @@
+node_modules/
+dist/
+.shots/
+*.local
+.DS_Store
+
+# Exceeds GitHub's 100MB file size limit
+data/YUAN, BETTY.dcm
+
+tsconfig.tsbuildinfo
