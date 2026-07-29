@@ -23,6 +23,8 @@ Then open http://localhost:5173.
 DICOM files that use a compressed transfer syntax (JPEG, JPEG 2000, RLE) are
 rejected with an explanatory message rather than rendered incorrectly.
 
+Meshes can be exported again as PLY, STL, OBJ or GLB.
+
 ## Controls
 
 - **Drag** to orbit, **scroll** to zoom, **right-drag** to pan
@@ -45,6 +47,48 @@ Volumes offer three rendering modes:
 Window/level, isosurface threshold, colour ramp, per-axis cropping, and sampling
 quality are all adjustable. Thresholds are reported in Hounsfield units for CT.
 
+## Mesh filters
+
+Loaded meshes can be edited in place. Every filter runs locally in a Web Worker;
+nothing is uploaded.
+
+| Filter | What it does |
+| --- | --- |
+| **Merge close vertices** | Joins vertices sharing a position, within a tolerance |
+| **Remove defects** | Drops zero-area and duplicate triangles, and unreferenced vertices |
+| **Remove small pieces** | Deletes disconnected fragments below a share of the model |
+| **Recompute normals** | Rebuilds vertex normals, area-weighted |
+| **Close holes** | Patches open boundary loops up to a size limit |
+| **Laplacian smooth** | Umbrella-operator smoothing; shrinks as iterations rise |
+| **Taubin smooth** | λ\|μ smoothing, which denoises without deflating the model |
+| **Simplify** | Quadric edge-collapse decimation to a triangle or error target |
+| **Convex hull** | Smallest convex solid containing every vertex |
+| **Boolean** | Union, difference or intersection against a second mesh file |
+
+Each run reports what it changed — vertex and triangle counts, holes filled,
+measured deviation from the original surface — and the last five states are kept
+for **Undo**, with **Revert to file** always returning to the mesh as loaded.
+
+### Why not MeshLab itself
+
+[MeshLab](https://www.meshlab.net/) is the obvious reference for this feature
+set, but it cannot be embedded here. It is a C++/Qt desktop application under
+GPL-3.0, and its browser port, [MeshLabJS], was last touched in 2022 and targets
+a pre-WebAssembly Emscripten toolchain. Its Python binding, PyMeshLab, is
+maintained but needs a server — which would mean uploading the very medical
+volumes this viewer is careful to keep local, and every option in that family
+carries GPL or AGPL copyleft.
+
+So the filters above are equivalents rather than MeshLab code, built on
+permissively licensed pieces: [meshoptimizer] (MIT) for decimation,
+[Manifold] (Apache-2.0) for CSG, and three.js for hull construction and export.
+The cleaning, smoothing and hole-filling passes are implemented directly in
+`src/lib/filters/`.
+
+[MeshLabJS]: https://github.com/cnr-isti-vclab/meshlabjs
+[meshoptimizer]: https://github.com/zeux/meshoptimizer
+[Manifold]: https://github.com/elalish/manifold
+
 ## How it works
 
 Parsing happens in a Web Worker (`src/workers/model.worker.ts`) so that large
@@ -53,6 +97,20 @@ than copied.
 
 Meshes are loaded with three.js's stock `PLYLoader`, `STLLoader`, and
 `OBJLoader`, then rendered with a standard material.
+
+Filters run in a second worker (`src/workers/filter.worker.ts`) and work on an
+always-indexed form of the mesh, since topology — which vertices share a corner,
+which edges have only one face — is what most of them read. STL stores every
+triangle separately and PLY files are often exported the same way, so a filter
+that needs topology welds the mesh first and says so in its report; without that
+step, smoothing and hole detection would find nothing to do and silently leave
+the model alone.
+
+The geometry handed to three.js wraps the payload's typed arrays rather than
+copying them, so the viewer must not modify them in place. Centring the model
+for orbiting is therefore done by offsetting the containing group, not by
+translating the geometry — otherwise every load would quietly rewrite the
+coordinates that the filters and the exporters read back.
 
 Volumes take a different path. `src/lib/dicom.ts` is a small DICOM reader that
 walks the dataset — descending into sequences, since enhanced multi-frame

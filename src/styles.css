@@ -303,6 +303,104 @@ input[type='range'] {
   gap: 8px;
 }
 
+.button-row--single {
+  grid-template-columns: 1fr;
+}
+
+.btn:disabled {
+  opacity: 0.45;
+  cursor: default;
+}
+
+.btn:disabled:hover {
+  border-color: var(--border);
+  background: var(--panel);
+}
+
+.btn--primary {
+  border-color: var(--accent-dim);
+  background: #1d2b45;
+  color: #d7e5ff;
+}
+
+.btn--primary:hover:not(:disabled) {
+  border-color: var(--accent);
+  background: #23375a;
+}
+
+/* ---------- filters ---------- */
+
+.filter__description {
+  margin: 2px 0 10px;
+  font-size: 11.5px;
+  line-height: 1.45;
+  color: var(--muted);
+}
+
+.filter__second {
+  margin-bottom: 8px;
+}
+
+/* The real file input is driven by the styled button next to it. */
+.filter__second input[type='file'] {
+  display: none;
+}
+
+.filter__status {
+  margin: 6px 0 0;
+  font-size: 11.5px;
+  color: var(--muted);
+}
+
+.filter__error {
+  margin: 10px 0 0;
+  padding: 8px 10px;
+  border: 1px solid #5c2b2b;
+  border-radius: 7px;
+  background: #2a1a1a;
+  font-size: 11.5px;
+  line-height: 1.45;
+  color: #ffb4ad;
+}
+
+.filter__log {
+  margin: 12px 0 0;
+  padding: 10px 0 0;
+  border-top: 1px solid var(--border);
+  list-style: none;
+  font-size: 11.5px;
+  line-height: 1.5;
+}
+
+.filter__log li {
+  margin-bottom: 8px;
+}
+
+.filter__log li:last-child {
+  margin-bottom: 0;
+}
+
+.filter__log strong {
+  font-weight: 600;
+}
+
+.filter__log em {
+  margin-left: 6px;
+  font-style: normal;
+  color: var(--muted);
+}
+
+.filter__log span {
+  display: block;
+  color: var(--muted);
+}
+
+/* Compound selector so it outranks the fixed width `.progress` further down. */
+.progress.progress--inline {
+  width: 100%;
+  margin-top: 10px;
+}
+
 .samples {
   display: flex;
   flex-direction: column;

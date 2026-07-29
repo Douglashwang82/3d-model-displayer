@@ -1,3 +1,5 @@
+import type { FilterId, FilterParams } from './filters/registry';
+
 export interface MeshPayload {
   kind: 'mesh';
   format: string;
@@ -38,6 +40,27 @@ export interface WorkerRequest {
 export type WorkerResponse =
   | { id: number; type: 'progress'; fraction: number; message: string }
   | { id: number; type: 'done'; payload: ModelPayload }
+  | { id: number; type: 'error'; message: string };
+
+export interface FilterRequest {
+  id: number;
+  filterId: FilterId;
+  params: FilterParams;
+  payload: MeshPayload;
+  /** Raw file for filters that operate on two meshes, such as the booleans. */
+  secondMesh: { fileName: string; buffer: ArrayBuffer } | null;
+}
+
+/** One completed filter run, shown in the panel's history. */
+export interface FilterLogEntry {
+  label: string;
+  notes: string[];
+  elapsedMs: number;
+}
+
+export type FilterResponse =
+  | { id: number; type: 'progress'; fraction: number; message: string }
+  | { id: number; type: 'done'; payload: MeshPayload; notes: string[]; elapsedMs: number }
   | { id: number; type: 'error'; message: string };
 
 export type RenderMode = 'mip' | 'iso' | 'composite';

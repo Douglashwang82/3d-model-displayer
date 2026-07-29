@@ -152,14 +152,21 @@ export class Viewer {
     this.points = null;
   }
 
-  load(payload: ModelPayload): void {
+  /**
+   * Replaces the displayed model.
+   *
+   * @param keepCamera Leaves the camera where it is instead of re-framing.
+   *   Filters swap the mesh for a modified version of the same object, and
+   *   snapping the view back each time would make the change hard to judge.
+   */
+  load(payload: ModelPayload, keepCamera = false): void {
     this.clearContent();
-    if (payload.kind === 'mesh') this.loadMesh(payload);
+    if (payload.kind === 'mesh') this.loadMesh(payload, keepCamera);
     else this.loadVolume(payload);
     this.requestRender();
   }
 
-  private loadMesh(payload: MeshPayload): void {
+  private loadMesh(payload: MeshPayload, keepCamera: boolean): void {
     const geometry = new THREE.BufferGeometry();
     geometry.setAttribute('position', new THREE.BufferAttribute(payload.position, 3));
     if (payload.index) geometry.setIndex(new THREE.BufferAttribute(payload.index, 1));
@@ -171,11 +178,9 @@ export class Viewer {
       geometry.computeVertexNormals();
     }
 
-    // Centre on the origin so orbiting feels anchored to the model.
     geometry.computeBoundingBox();
     const centre = new THREE.Vector3();
     geometry.boundingBox!.getCenter(centre);
-    geometry.translate(-centre.x, -centre.y, -centre.z);
     geometry.computeBoundingSphere();
     // Degenerate geometry can yield a zero or NaN radius, which would put the
     // camera at an invalid distance.
@@ -193,13 +198,18 @@ export class Viewer {
     const mesh = new THREE.Mesh(geometry, material);
     const group = new THREE.Group();
     group.add(mesh);
+    // Centre on the origin so orbiting feels anchored to the model. This is
+    // done by offsetting the group rather than translating the geometry: the
+    // position attribute is a view onto the payload's own array, and baking the
+    // offset into it would rewrite the model that filters and exports read.
+    group.position.copy(centre).negate();
 
     this.geometry = geometry;
     this.meshMaterial = material;
     this.mesh = mesh;
     this.content = group;
     this.scene.add(group);
-    this.frameCamera();
+    if (!keepCamera) this.frameCamera();
   }
 
   private loadVolume(payload: VolumePayload): void {
